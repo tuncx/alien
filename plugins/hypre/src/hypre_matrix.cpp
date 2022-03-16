@@ -88,18 +88,21 @@ void Matrix::setRowValues(int rows, Arccore::ConstArrayView<int> cols, Arccore::
   const HYPRE_BigInt* ids = nullptr;
   const HYPRE_Real* data = nullptr;
 
-//#ifdef ALIEN_HYPRE_CUDA
-//  HYPRE_MemoryLocation memory_location;
-//  HYPRE_GetMemoryLocation(&memory_location);
-//  if (memory_location != HYPRE_MEMORY_HOST) {
-//    HYPRE_BigInt* d_cols = hypre_CTAlloc(HYPRE_BigInt, cols.size(), memory_location);
-//    HYPRE_Real* d_values = hypre_CTAlloc(HYPRE_Real, values.size(), memory_location);
-//
-//    hypre_TMemcpy(d_cols, cols.data(), HYPRE_BigInt, cols.size(), memory_location, HYPRE_MEMORY_HOST);
-//    hypre_TMemcpy(d_values, values.data(), HYPRE_Real, values.size(), memory_location, HYPRE_MEMORY_HOST);
-//  }
-//  else
-//#endif // ALIEN_HYPRE_CUDA
+#ifdef ALIEN_HYPRE_CUDA
+  HYPRE_MemoryLocation memory_location;
+  HYPRE_GetMemoryLocation(&memory_location);
+  if (memory_location != HYPRE_MEMORY_HOST) {
+    HYPRE_BigInt* d_cols = hypre_CTAlloc(HYPRE_BigInt, cols.size(), memory_location);
+    HYPRE_Real* d_values = hypre_CTAlloc(HYPRE_Real, values.size(), memory_location);
+
+    hypre_TMemcpy(d_cols, cols.data(), HYPRE_BigInt, cols.size(), memory_location, HYPRE_MEMORY_HOST);
+    hypre_TMemcpy(d_values, values.data(), HYPRE_Real, values.size(), memory_location, HYPRE_MEMORY_HOST);
+
+    ids = d_cols;
+    data = d_values;
+  }
+  else
+#endif // ALIEN_HYPRE_CUDA
   {
     ids = cols.data();
     data = values.data();
@@ -111,12 +114,12 @@ void Matrix::setRowValues(int rows, Arccore::ConstArrayView<int> cols, Arccore::
     auto msg = Arccore::String::format("Cannot set Hypre Matrix Values for row {0}", rows);
     throw Arccore::FatalErrorException(A_FUNCINFO, msg);
   }
-//#ifdef ALIEN_HYPRE_CUDA
-//  if (memory_location != HYPRE_MEMORY_HOST) {
-//    hypre_TFree(ids, memory_location);
-//    hypre_TFree(data, memory_location);
-//  }
-//#endif // ALIEN_HYPRE_CUDA
+#ifdef ALIEN_HYPRE_CUDA
+  if (memory_location != HYPRE_MEMORY_HOST) {
+    hypre_TFree(ids, memory_location);
+    hypre_TFree(data, memory_location);
+  }
+#endif // ALIEN_HYPRE_CUDA
 }
 
 } // namespace Alien::Hypre
