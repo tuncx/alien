@@ -80,6 +80,7 @@ void Matrix::assemble()
 void Matrix::setRowValues(int rows, Arccore::ConstArrayView<int> cols, Arccore::ConstArrayView<double> values)
 {
   HYPRE_Int col_size = cols.size();
+  HYPRE_BigInt h_rows = rows;
 
   if (col_size != values.size()) {
     throw Arccore::FatalErrorException(A_FUNCINFO, "sizes are not equal");
@@ -88,22 +89,26 @@ void Matrix::setRowValues(int rows, Arccore::ConstArrayView<int> cols, Arccore::
   const HYPRE_BigInt* ids = nullptr;
   const HYPRE_Real* data = nullptr;
   HYPRE_Int* ncols;
+  HYPRE_BigInt* p_rows;
 
 #ifdef ALIEN_HYPRE_CUDA
   HYPRE_MemoryLocation memory_location;
   HYPRE_GetMemoryLocation(&memory_location);
   if (memory_location != HYPRE_MEMORY_HOST) {
-    HYPRE_BigInt* d_cols = hypre_CTAlloc(HYPRE_BigInt, cols.size(), memory_location);
+    HYPRE_BigInt* d_ids = hypre_CTAlloc(HYPRE_BigInt, cols.size(), memory_location);
     HYPRE_Real* d_values = hypre_CTAlloc(HYPRE_Real, values.size(), memory_location);
-    HYPRE_Real* d_cols = hypre_CTAlloc(HYPRE_Int, 1, memory_location);
+    HYPRE_Real* d_ncols = hypre_CTAlloc(HYPRE_Int, 1, memory_location);
+    HYPRE_Real* d_rows = hypre_CTAlloc(HYPRE_BigInt, 1, memory_location);
 
-    hypre_TMemcpy(d_cols, cols.data(), HYPRE_BigInt, cols.size(), memory_location, HYPRE_MEMORY_HOST);
+    hypre_TMemcpy(d_ids, cols.data(), HYPRE_BigInt, cols.size(), memory_location, HYPRE_MEMORY_HOST);
     hypre_TMemcpy(d_values, values.data(), HYPRE_Real, values.size(), memory_location, HYPRE_MEMORY_HOST);
-    hypre_TMemcpy(d_cols, &ncols, HYPRE_Int, 1, memory_location, HYPRE_MEMORY_HOST);
+    hypre_TMemcpy(d_ncols, &ncols, HYPRE_Int, 1, memory_location, HYPRE_MEMORY_HOST);
+    hypre_TMemcpy(d_rows, &h_rows, HYPRE_BigInt, 1, memory_location, HYPRE_MEMORY_HOST);
 
-    ids = d_cols;
+    ids = d_ids;
     data = d_values;
-    ncols = d_cols;
+    ncols = d_ncols;
+    p_rows = d_rows;
   }
   else
 #endif // ALIEN_HYPRE_CUDA
@@ -111,9 +116,10 @@ void Matrix::setRowValues(int rows, Arccore::ConstArrayView<int> cols, Arccore::
     ids = cols.data();
     data = values.data();
     ncols = &col_size;
+    p_rows = &h_rows;
   }
 
-  auto ierr = HYPRE_IJMatrixSetValues(m_hypre, 1, ncols, &rows, ids, data);
+  auto ierr = HYPRE_IJMatrixSetValues(m_hypre, 1, ncols, p_rows, ids, data);
 
   if (ierr) {
     auto msg = Arccore::String::format("Cannot set Hypre Matrix Values for row {0}", rows);
@@ -121,6 +127,7 @@ void Matrix::setRowValues(int rows, Arccore::ConstArrayView<int> cols, Arccore::
   }
 #ifdef ALIEN_HYPRE_CUDA
   if (memory_location != HYPRE_MEMORY_HOST) {
+    hypre_TFree(p_rows, memory_location);
     hypre_TFree(ncols, memory_location);
     hypre_TFree(data, memory_location);
     hypre_TFree(ids, memory_location);
