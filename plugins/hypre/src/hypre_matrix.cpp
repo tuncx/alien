@@ -97,8 +97,8 @@ void Matrix::setRowValues(int rows, Arccore::ConstArrayView<int> cols, Arccore::
   if (memory_location != HYPRE_MEMORY_HOST) {
     HYPRE_BigInt* d_ids = hypre_CTAlloc(HYPRE_BigInt, cols.size(), memory_location);
     HYPRE_Real* d_values = hypre_CTAlloc(HYPRE_Real, values.size(), memory_location);
-    HYPRE_Real* d_ncols = hypre_CTAlloc(HYPRE_Int, 1, memory_location);
-    HYPRE_Real* d_rows = hypre_CTAlloc(HYPRE_BigInt, 1, memory_location);
+    HYPRE_Int* d_ncols = hypre_CTAlloc(HYPRE_Int, 1, memory_location);
+    HYPRE_BigInt* d_rows = hypre_CTAlloc(HYPRE_BigInt, 1, memory_location);
 
     hypre_TMemcpy(d_ids, cols.data(), HYPRE_BigInt, cols.size(), memory_location, HYPRE_MEMORY_HOST);
     hypre_TMemcpy(d_values, values.data(), HYPRE_Real, values.size(), memory_location, HYPRE_MEMORY_HOST);
