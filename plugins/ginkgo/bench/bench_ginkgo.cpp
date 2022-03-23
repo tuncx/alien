@@ -298,7 +298,7 @@ int main(int argc, char** argv)
   }
 
   // Read the optional block size
-  int block_size;
+  int block_size = 32;
   if (argv[5]) {
     block_size = atoi(argv[5]);
   }
