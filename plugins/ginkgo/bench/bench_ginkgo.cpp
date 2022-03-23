@@ -120,7 +120,7 @@ double vecMinAbs(const Alien::Move::VectorData& v)
   return absmin;
 }
 
-int test(const Alien::Ginkgo::OptionTypes::eSolver& solv, const Alien::Ginkgo::OptionTypes::ePreconditioner& prec, const std::string& mat_filename, const std::string& vec_filename)
+int test(const Alien::Ginkgo::OptionTypes::eSolver& solv, const Alien::Ginkgo::OptionTypes::ePreconditioner& prec, const std::string& mat_filename, const std::string& vec_filename, const int& block_size)
 {
   auto* pm = Arccore::MessagePassing::Mpi::StandaloneMpiMessagePassingMng::create(MPI_COMM_WORLD);
   auto* tm = Arccore::arccoreCreateDefaultTraceMng();
@@ -174,6 +174,7 @@ int test(const Alien::Ginkgo::OptionTypes::eSolver& solv, const Alien::Ginkgo::O
   options.numIterationsMax(500);
   options.stopCriteriaValue(1e-8);
   options.preconditioner(prec); // Jacobi, NoPC
+  options.blockSize(block_size); // block size
   options.solver(solv); //CG, GMRES, BICG, BICGSTAB
   auto solver = Alien::Ginkgo::LinearSolver(options);
 
@@ -233,11 +234,12 @@ int main(int argc, char** argv)
   MPI_Init(&argc, &argv);
 
   if (argc < 4) {
-    std::cerr << "Usage : ./bench_ginkgo [solver] [preconditioner] [matrix] [vector] \n"
+    std::cerr << "Usage : ./bench_ginkgo [solver] [preconditioner] [matrix] [vector] [optional block size]\n"
               << "  - solver : (CG|GMRES|BICG|BICGSTAB) \n"
-              << "  - preconditioner : (Jacobi|Ilu|NoPC) \n"
+              << "  - preconditioner : (Jacobi|Ilu0|NoPC) \n"
               << "  - MTX matrix file \n"
-              << "  - optional MTX vector file \n";
+              << "  - optional MTX vector file \n"
+              << "  - optional block size \n";
     return -1;
   }
 
@@ -295,9 +297,15 @@ int main(int argc, char** argv)
     vec_file = std::string(argv[4]);
   }
 
+  // Read the optional block size
+  int block_size;
+  if (argv[5]) {
+    block_size = atoi(argv[5]);
+  }
+
   auto ret = 0;
   try {
-    ret = test(solver, prec, matrix_file, vec_file);
+    ret = test(solver, prec, matrix_file, vec_file, block_size);
   }
   catch (const Arccore::Exception& ex) {
     std::cerr << "Exception: " << ex << '\n';
