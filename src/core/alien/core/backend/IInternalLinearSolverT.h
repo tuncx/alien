@@ -45,7 +45,8 @@ namespace Alien
 class ILinearAlgebra;
 class SolverStat;
 class SolverStatus;
-
+class SolverStater;
+  
 /*!
  * \ingroup core
  * \brief Internal linear solver interface
@@ -109,6 +110,10 @@ class IInternalLinearSolver
    */
   virtual const SolverStatus& getStatus() const = 0;
 
+  virtual SolverStatus& getStatusRef() = 0;
+
+  virtual SolverStater& getSolverStater() = 0 ;
+  
   /*!
    * \brief Get compatible linear algebra
    * \returns Linear algebra pointer
