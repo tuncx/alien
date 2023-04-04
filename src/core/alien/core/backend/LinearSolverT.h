@@ -24,6 +24,7 @@
 #include <alien/core/backend/LinearSolver.h>
 
 #include <alien/expression/solver/SolverStat.h>
+#include <alien/expression/solver/SolverStater.h>
 
 #include <alien/core/impl/MultiMatrixImpl.h>
 #include <alien/core/impl/MultiVectorImpl.h>
